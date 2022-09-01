@@ -16,7 +16,7 @@ async function main() {
         mkdirSync(dir);
     }
 
-    const searchTerms = parseXml("playlist.xml");
+    const searchTerms = await parseXml("playlist.xml");
 
     const browser = await playwright[browserType].launch();
     const context = await browser.newContext();
@@ -28,31 +28,32 @@ async function main() {
         forceRedraw: true,
     });
 
-    let count = 0;
     await PromisePool.withConcurrency(5)
-        .for(searchTerms)
-        .process(async ({ filename, searchTerm }, index, pool) => {
-            const bar = progressBars.create(4, 0, { filename: `(${count++}) ${searchTerm}` });
+        .for(searchTerms.slice(0, 1))
+        .process(async ({ filename, searchTerm, attributes }, index) => {
+            const bar = progressBars.create(4, 0, { filename: `(${index}) ${filename}` });
 
             const page = await context.newPage();
             const url = baseUrl + "/#" + encodeURIComponent(searchTerm);
             await page.goto(url);
+            const pageLoaded = page.waitForLoadState("load");
+
             bar.update(1);
-            await page.waitForLoadState("load");
+            await pageLoaded;
 
             const downloadAnchor = await page.waitForSelector(".sm2_link");
             const downloadUrl = await downloadAnchor?.getAttribute("href");
             bar.update(2);
 
             if (downloadUrl) {
-                const sanitizedFileName = filenamify(filename);
-                await downloadFile(baseUrl + downloadUrl, "./music/" + sanitizedFileName);
-                bar.update(3);
+                await downloadFile(baseUrl + downloadUrl, "./music/" + filenamify(filename), attributes);
             } else {
                 console.log(colors.red(`Error downloading ${filename}`));
             }
+            bar.update(3);
 
             await page.close();
+
             bar.update(4);
 
             setTimeout(() => {
@@ -63,6 +64,9 @@ async function main() {
 
     progressBars.stop();
     await browser.close();
+
+    console.log(colors.cyan("Download Finished - Thanks for using this tool!"));
+    process.exit(0);
 }
 
 main();

@@ -1,7 +1,10 @@
 import axios from "axios";
 import { createWriteStream } from "fs";
+import ffmetadata from "ffmetadata";
 
-export async function downloadFile(fileUrl: string, outputLocationPath: string) {
+import { config } from "./config.js";
+
+export async function downloadFile(fileUrl: string, outputLocationPath: string, attributes: Record<string, string>) {
     const writer = createWriteStream(outputLocationPath);
 
     return axios({
@@ -17,8 +20,19 @@ export async function downloadFile(fileUrl: string, outputLocationPath: string) 
                 writer.close();
                 reject(err);
             });
-            writer.on("close", () => {
+            writer.on("close", async () => {
                 if (!error) {
+                    if (config.USE_FFMPEG) {
+                        await new Promise<void>((resolve, reject) => {
+                            ffmetadata.write(outputLocationPath, attributes, (err) => {
+                                if (err) {
+                                    reject(err);
+                                }
+                                resolve();
+                            });
+                        });
+                    }
+
                     resolve(true);
                 }
             });

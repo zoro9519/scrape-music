@@ -1,32 +1,40 @@
-import { XMLParser } from "fast-xml-parser";
-import { readFileSync } from "fs";
+import fs from "fs";
+import itunes from "itunes-data";
 
 interface Song {
-    key: string[];
-    integer: number[];
-    string: string[];
-    date: string[];
+    Name: string;
+    Artist: string;
+    Composer: string;
+    Album: string;
+    Genre: string;
 }
 
-export const parseXml = (path: string) => {
-    const XMLdata = readFileSync(path, "utf8");
+export const parseXml = async (path: string) => {
+    const parser = itunes.parser();
+    const stream = fs.createReadStream(path);
 
-    const parser = new XMLParser();
-    const jObj = parser.parse(XMLdata);
+    const tracks: { searchTerm: string; filename: string; attributes: { [K: string]: any } }[] = [];
 
-    const songs: Song[] = jObj["plist"]["dict"]["dict"]["dict"];
-
-    const searchTerms: { searchTerm: string; filename: string }[] = [];
-
-    for (const song of songs) {
-        const title = song["string"][0];
-        const artist = song["string"][1];
-
-        searchTerms.push({
-            searchTerm: `${title} ${artist}`,
-            filename: `${title} - ${artist}.mp3`,
+    parser.on("track", function (track: Song) {
+        tracks.push({
+            searchTerm: `${track.Name} ${track.Artist}`,
+            filename: `${track.Artist} - ${track.Name}.mp3`,
+            attributes: {
+                artist: track.Artist,
+                title: track.Name,
+                album: track.Album,
+                genre: track.Genre,
+            },
         });
-    }
+    });
 
-    return searchTerms;
+    stream.pipe(parser);
+
+    await new Promise<void>((res) => {
+        stream.on("close", () => {
+            res();
+        });
+    });
+
+    return tracks;
 };
