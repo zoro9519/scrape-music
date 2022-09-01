@@ -16,13 +16,16 @@ export const parseXml = (path: string) => {
 
     const songs: Song[] = jObj["plist"]["dict"]["dict"]["dict"];
 
-    const searchTerms: string[] = [];
+    const searchTerms: { searchTerm: string; filename: string }[] = [];
 
     for (const song of songs) {
         const title = song["string"][0];
         const artist = song["string"][1];
 
-        searchTerms.push(`${title} ${artist}`);
+        searchTerms.push({
+            searchTerm: `${title} ${artist}`,
+            filename: `${title} - ${artist}.mp3`,
+        });
     }
 
     return searchTerms;

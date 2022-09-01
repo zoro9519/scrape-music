@@ -31,7 +31,7 @@ async function main() {
     let count = 0;
     await PromisePool.withConcurrency(5)
         .for(searchTerms)
-        .process(async (searchTerm, index, pool) => {
+        .process(async ({ filename, searchTerm }, index, pool) => {
             const bar = progressBars.create(4, 0, { filename: `(${count++}) ${searchTerm}` });
 
             const page = await context.newPage();
@@ -45,8 +45,8 @@ async function main() {
             bar.update(2);
 
             if (downloadUrl) {
-                const fileName = filenamify(searchTerm + ".mp3");
-                await downloadFile(baseUrl + downloadUrl, "./music/" + fileName);
+                const sanitizedFileName = filenamify(filename);
+                await downloadFile(baseUrl + downloadUrl, "./music/" + sanitizedFileName);
                 bar.update(4);
             }
             await page.close();
