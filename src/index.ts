@@ -28,6 +28,11 @@ async function main() {
         forceRedraw: true,
     });
 
+    const errors: string[] = [];
+    const createError = (message: string) => {
+        errors.push(message);
+    };
+
     await PromisePool.withConcurrency(5)
         .for(searchTerms)
         .process(async ({ filename, searchTerm, attributes }, index) => {
@@ -46,9 +51,9 @@ async function main() {
             bar.update(2);
 
             if (downloadUrl) {
-                await downloadFile(baseUrl + downloadUrl, "./music/" + filenamify(filename), attributes);
+                await downloadFile(baseUrl + downloadUrl, "./music/" + filenamify(filename), attributes, createError);
             } else {
-                console.log(colors.red(`Error downloading ${filename}`));
+                createError(colors.red(`Error downloading ${filename}`));
             }
             bar.update(3);
 
@@ -66,7 +71,17 @@ async function main() {
     await browser.close();
 
     console.log(colors.cyan("Download Finished - Thanks for using this tool!"));
-    process.exit(0);
+
+    if (errors.length > 0) {
+        console.log(colors.red(`There were ${errors.length} errors.`));
+        for (const error of errors) {
+            console.log(error);
+        }
+    }
 }
 
-main();
+(async () => {
+    await main();
+
+    process.exit(0);
+})();

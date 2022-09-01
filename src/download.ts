@@ -1,10 +1,15 @@
 import axios from "axios";
 import { createWriteStream } from "fs";
 import ffmetadata from "ffmetadata";
-
+import colors from "ansi-colors";
 import { config } from "./config.js";
 
-export async function downloadFile(fileUrl: string, outputLocationPath: string, attributes: Record<string, string>) {
+export async function downloadFile(
+    fileUrl: string,
+    outputLocationPath: string,
+    attributes: Record<string, string>,
+    createError: (message: string) => void
+) {
     const writer = createWriteStream(outputLocationPath);
 
     return axios({
@@ -18,7 +23,7 @@ export async function downloadFile(fileUrl: string, outputLocationPath: string, 
             writer.on("error", (err) => {
                 error = err;
                 writer.close();
-                reject(err);
+                createError(colors.yellow(err.message));
             });
             writer.on("close", async () => {
                 if (!error) {
@@ -26,7 +31,11 @@ export async function downloadFile(fileUrl: string, outputLocationPath: string, 
                         await new Promise<void>((resolve, reject) => {
                             ffmetadata.write(outputLocationPath, attributes, (err) => {
                                 if (err) {
-                                    reject(err);
+                                    createError(
+                                        colors.red(
+                                            `Error writing metadata to ${outputLocationPath}, this indicates a likely problem with the file. I would suggest manually downloading this file.`
+                                        )
+                                    );
                                 }
                                 resolve();
                             });
