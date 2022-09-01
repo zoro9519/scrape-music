@@ -47,7 +47,7 @@ async function main() {
             if (downloadUrl) {
                 const sanitizedFileName = filenamify(filename);
                 await downloadFile(baseUrl + downloadUrl, "./music/" + sanitizedFileName);
-                bar.update(4);
+                bar.update(3);
             }
             await page.close();
             bar.update(4);
