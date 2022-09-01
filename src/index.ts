@@ -28,8 +28,8 @@ async function main() {
         forceRedraw: true,
     });
 
-    await PromisePool.withConcurrency(5)
-        .for(searchTerms.slice(0, 1))
+    await PromisePool.withConcurrency(10)
+        .for(searchTerms)
         .process(async ({ filename, searchTerm, attributes }, index) => {
             const bar = progressBars.create(4, 0, { filename: `(${index}) ${filename}` });
 
